@@ -19,6 +19,7 @@
 package com.alta189.cyborg.admin;
 
 import com.alta189.cyborg.Cyborg;
+import com.alta189.cyborg.CyborgBot;
 import com.alta189.cyborg.api.command.CommandContext;
 import com.alta189.cyborg.api.command.CommandResult;
 import com.alta189.cyborg.api.command.CommandSource;
@@ -42,7 +43,7 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.echo")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (context.getArgs() != null && context.getArgs().length >= 1) {
 			Cyborg.getInstance().shutdown(StringUtils.toString(context.getArgs(), " "));
@@ -52,32 +53,32 @@ public class AdminCommands {
 		return null;
 	}
 
-	@Command(name = "joinchannel", desc = "Sends message to target", aliases = {"j", "jc", "join"})
-	@Usage(".joinchannel <channel> [key]")
+	@Command(name = "joinchannel", desc = "Joins a channel", aliases = {"j", "jc", "join"})
+	@Usage(".joinchannel <server> <channel> [key]")
 	public CommandResult joinchannel(CommandSource source, CommandContext context) {
 		if (source.getSource() == CommandSource.Source.USER && (context.getPrefix() == null || !context.getPrefix().equals("."))) {
 			return null;
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.join")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getNick());
 		}
-		if (context.getArgs() == null || context.getArgs().length < 1) {
-			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "joinchannel <channel> [key]";
-			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+		if (context.getArgs() == null || context.getArgs().length < 2) {
+			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "joinchannel <server> <channel> [key]";
+			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getNick());
 		}
-		if (!context.getArgs()[0].startsWith("#")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("Invalid channel").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+		if (!context.getArgs()[1].startsWith("#")) {
+			return result.setReturnType(ReturnType.NOTICE).setBody("Invalid channel").setTarget(source.getNick());
 		}
-		if (context.getArgs().length >= 2) {
-			Cyborg.getInstance().joinChannel(context.getArgs()[0], context.getArgs()[1]);
+		if (context.getArgs().length >= 3) {
+			Cyborg.getInstance().getBot(context.getArgs()[0]).joinChannel(context.getArgs()[1], context.getArgs()[2]);
 		} else {
-			Cyborg.getInstance().joinChannel(context.getArgs()[0]);
+			Cyborg.getInstance().getBot(context.getArgs()[0]).joinChannel(context.getArgs()[1]);
 		}
-		return result.setReturnType(ReturnType.MESSAGE).setBody("Joining channel '" + context.getArgs()[0] + "'").setTarget(context.getLocationType() == CommandContext.LocationType.CHANNEL ? context.getLocation() : source.getUser().getNick());
+		return result.setReturnType(ReturnType.MESSAGE).setBody("Joining channel '" + context.getArgs()[1] + "'").setTarget(context.getLocationType() == CommandContext.LocationType.CHANNEL ? context.getLocation() : source.getNick());
 	}
 
-	@Command(name = "partchannel", desc = "Sends message to target", aliases = {"p", "pc", "part"})
+	@Command(name = "partchannel", desc = "Parts a channel", aliases = {"p", "pc", "part"})
 	@Usage(".partchannel <channel> [key]")
 	public CommandResult partchannel(CommandSource source, CommandContext context) {
 		if (source.getSource() == CommandSource.Source.USER && (context.getPrefix() == null || !context.getPrefix().equals("."))) {
@@ -85,26 +86,27 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.part")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
-		if (context.getArgs() == null || context.getArgs().length < 1) {
-			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "partchannel <channel> [reason]";
-			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+		if (context.getArgs() == null || context.getArgs().length < 2) {
+			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "partchannel <server> <channel> [reason]";
+			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
-		if (!context.getArgs()[0].startsWith("#")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("Invalid channel!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+		if (!context.getArgs()[1].startsWith("#")) {
+			return result.setReturnType(ReturnType.NOTICE).setBody("Invalid channel!").setTarget(source.getNick());
 		}
-		Channel channel = Cyborg.getInstance().getChannel(context.getArgs()[0]);
+		CyborgBot bot = Cyborg.getInstance().getBot(context.getArgs()[0]);
+		Channel channel = bot.getUserChannelDao().getChannel(context.getArgs()[1]);
 		if (channel == null) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("I am not in that channel").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("I am not in that channel").setTarget(source.getNick());
 		}
 		if (context.getArgs().length >= 2) {
 			System.out.println(StringUtils.toString(context.getArgs(), 1, " "));
-			Cyborg.getInstance().partChannel(channel, StringUtils.toString(context.getArgs(), 1, " "));
+			bot.partChannel(channel, StringUtils.toString(context.getArgs(), 1, " "));
 		} else {
-			Cyborg.getInstance().partChannel(channel);
+			bot.partChannel(channel);
 		}
-		String nick = source.getSource() == CommandSource.Source.TERMINALUSER ? null : source.getUser().getNick();
+		String nick = source.getNick();
 		return result.setReturnType(ReturnType.MESSAGE).setBody("Parting channel '" + context.getArgs()[0] + "'").setTarget(context.getLocationType() == CommandContext.LocationType.CHANNEL ? context.getLocation() : nick);
 	}
 
@@ -116,11 +118,11 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.echo")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (context.getArgs() == null || context.getArgs().length < 2) {
 			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "echo <target> <message>";
-			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getNick());
 		}
 		String message = StringUtils.toString(context.getArgs(), 1, " ");
 		return result.setReturnType(ReturnType.MESSAGE).setBody(message).setTarget(context.getArgs()[0]).setForced(true);
@@ -134,11 +136,11 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.notice")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You do not have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You do not have permission!").setTarget(source.getNick());
 		}
 		if (context.getArgs() == null || context.getArgs().length < 2) {
 			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "notice <target> <notice>";
-			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getNick());
 		}
 		String message = StringUtils.toString(context.getArgs(), 1, " ");
 		return result.setReturnType(ReturnType.NOTICE).setBody(message).setTarget(context.getArgs()[0]).setForced(true);
@@ -152,11 +154,11 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.action")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (context.getArgs() == null || context.getArgs().length < 2) {
 			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "action <target> <action>";
-			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		String message = StringUtils.toString(context.getArgs(), 1, " ");
 		return result.setReturnType(ReturnType.ACTION).setBody(message).setTarget(context.getArgs()[0]).setForced(true);
@@ -170,17 +172,17 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.mute")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (context.getArgs() == null || context.getArgs().length < 1) {
 			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "mute <channel>";
-			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (!context.getArgs()[0].startsWith("#")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("Not a valid channel!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("Not a valid channel!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (Config.isChannelMuted(context.getArgs()[0])) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("Already muted!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("Already muted!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		Config.addMutedChannel(context.getArgs()[0]);
 		return null;
@@ -194,17 +196,17 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.mute")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (context.getArgs() == null || context.getArgs().length < 1) {
 			String body = "Correct usage is " + (source.getSource() == CommandSource.Source.USER ? "." : "") + "mute <channel>";
-			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody(body).setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (!context.getArgs()[0].startsWith("#")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("Not a valid channel!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("Not a valid channel!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		if (!Config.isChannelMuted(context.getArgs()[0])) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("Channel is not muted").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("Channel is not muted").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		Config.removeMutedChannel(context.getArgs()[0]);
 		return null;
@@ -218,7 +220,7 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.mutelist")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getSource() != CommandSource.Source.USER ? null : source.getNick());
 		}
 		StringBuilder builder = new StringBuilder();
 		builder.append("Muted channels: ");
@@ -235,7 +237,7 @@ public class AdminCommands {
 		if (builder.toString().equalsIgnoreCase("Muted channels: ")) {
 			builder = new StringBuilder().append("There are no muted channels");
 		}
-		return result.setReturnType(ReturnType.MESSAGE).setBody(builder.toString()).setTarget(context.getLocationType() == CommandContext.LocationType.CHANNEL ? context.getLocation() : source.getUser().getNick());
+		return result.setReturnType(ReturnType.MESSAGE).setBody(builder.toString()).setTarget(context.getLocationType() == CommandContext.LocationType.CHANNEL ? context.getLocation() : source.getNick());
 	}
 
 	@Command(name = "memory", desc = "Returns information on the JVM's memory usage", aliases = {"mem"})
@@ -246,7 +248,7 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.memory")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getNick());
 		}
 		String freeMemory = FileUtils.byteCountToDisplaySize(Runtime.getRuntime().freeMemory());
 		String maxMemory = FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory());
@@ -265,7 +267,7 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.cores")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getNick());
 		}
 		int availableCores = Runtime.getRuntime().availableProcessors();
 
@@ -282,7 +284,7 @@ public class AdminCommands {
 		}
 		CommandResult result = new CommandResult();
 		if (source.getSource() == CommandSource.Source.USER && !hasPerm(source.getUser(), "admin.gc")) {
-			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getUser().getNick());
+			return result.setReturnType(ReturnType.NOTICE).setBody("You don't have permission!").setTarget(source.getNick());
 		}
 
 		System.gc();
